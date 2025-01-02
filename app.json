@@ -20,7 +20,17 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "build": {
+        "babel": {
+          "include": ["@expo/vector-icons"]
+        }
+      },
+      "viewport": {
+        "maximumScale": 1,
+        "minimumScale": 1,
+        "userScalable": false
+      }
     },
     "plugins": [
       "expo-router",

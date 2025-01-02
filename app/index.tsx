@@ -3,6 +3,19 @@ import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions } from "r
 import { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 
+const PREDEFINED_COLORS = [
+  '#FF3B30', // Red
+  '#007AFF', // Blue
+  '#4CD964', // Green
+  '#FF9500', // Orange
+  '#5856D6', // Purple
+  '#FFD60A', // Yellow
+  '#00C7BE', // Teal
+  '#FF2D55', // Pink
+  '#8E8E93', // Gray
+  '#34C759', // Lime
+];
+
 export default function App() {
   const [circles, setCircles] = useState<Map<number, {
     x: number,
@@ -27,33 +40,52 @@ export default function App() {
   const [expandingColor, setExpandingColor] = useState<string | null>(null);
   const expandAnimation = useRef(new Animated.Value(0)).current;
 
-  const generateRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
+  const generateRandomColor = (existingColors: string[]) => {
+    // Filter out colors that are already in use
+    const availableColors = PREDEFINED_COLORS.filter(
+      color => !existingColors.includes(color)
+    );
+    
+    // If all colors are used, return the first predefined color (shouldn't happen with 10 colors)
+    if (availableColors.length === 0) {
+      return PREDEFINED_COLORS[0];
     }
-    return color;
+    
+    // Return a random color from available colors
+    return availableColors[Math.floor(Math.random() * availableColors.length)];
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Clear old circles and expanding color if present
+    if (expandingColor || isGrouping) {
+      if (removeTimeout.current) {
+        clearTimeout(removeTimeout.current);
+      }
+      setExpandingColor(null);
+      setCircles(new Map()); // Clear old circles
+      stopGroupingAnimation(); // Stop any ongoing grouping animation
+    }
+
     setLastTouchTime(Date.now());
     if (isGrouping) {
       stopGroupingAnimation();
     }
     const rect = e.currentTarget.getBoundingClientRect();
-    const newCircles = new Map(circles);
-
+    const newCircles = new Map(circles); // Keep existing circles by copying the map
+    
     Array.from(e.touches).forEach(touch => {
-      if (!circles.has(touch.identifier)) {
+      if (!newCircles.has(touch.identifier)) { // Only create new circle if it doesn't exist
         const newX = touch.clientX - rect.left;
         const newY = touch.clientY - rect.top;
+        
+        // Get existing colors
+        const existingColors = Array.from(newCircles.values()).map(circle => circle.color);
         
         newCircles.set(touch.identifier, {
           x: newX,
           y: newY,
-          color: generateRandomColor(),
-          scaleAnim: new Animated.Value(1),
+          color: generateRandomColor(existingColors),
+          scaleAnim: new Animated.Value(0.75),
           positionX: new Animated.Value(newX),
           positionY: new Animated.Value(newY),
         });
@@ -62,12 +94,12 @@ export default function App() {
         Animated.loop(
           Animated.sequence([
             Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
-              toValue: 1.2,
+              toValue: 0.9,
               duration: 200,
               useNativeDriver: true,
             }),
             Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
-              toValue: 1,
+              toValue: 0.75,
               duration: 200,
               useNativeDriver: true,
             }),
@@ -81,11 +113,6 @@ export default function App() {
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (selectedOption === 'groupSplitter' && isGrouping) {
-      // Don't remove circles immediately if grouping
-      if (removeTimeout.current) {
-        clearTimeout(removeTimeout.current);
-      }
-      
       // Stop animations and make circles opaque
       const newCircles = new Map(circles);
       Array.from(newCircles.values()).forEach(circle => {
@@ -93,11 +120,8 @@ export default function App() {
         circle.scaleAnim.setValue(1);
       });
       
-      // Set timeout to remove circles after 5 seconds
-      removeTimeout.current = setTimeout(() => {
-        setShouldRemoveCircles(true);
-      }, 5000);
-      
+      // Don't set a timeout - let handleTouchStart handle the cleanup
+      setCircles(newCircles);
       return;
     }
 
@@ -230,21 +254,20 @@ export default function App() {
           
           // Keep only the picked circle
           const newCircles = new Map();
-          newCircles.set(randomId, selectedCircle);
+          newCircles.set(randomId, {
+            ...selectedCircle,
+            scaleAnim: new Animated.Value(0.75) // Ensure picked circle is also at 75%
+          });
           setCircles(newCircles);
 
-          // Start expansion animation
+          // Start expansion animation from the circle's position
           expandAnimation.setValue(0);
           Animated.timing(expandAnimation, {
             toValue: 1,
             duration: 1000,
             useNativeDriver: false,
           }).start(() => {
-            // After animation completes, wait 5 seconds then clear
-            setTimeout(() => {
-              setExpandingColor(null);
-              setShouldRemoveCircles(true);
-            }, 5000);
+            setExpandingColor(selectedCircle.color);
           });
         }
       }, 2000);
@@ -289,6 +312,7 @@ export default function App() {
       title: 'Group Splitter',
       subMenu: (
         <View style={{ marginTop: 10, marginLeft: 20 }}>
+        
           {[2, 3, 4].map((num) => (
             <TouchableOpacity
               key={num}
@@ -311,7 +335,16 @@ export default function App() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen 
+        options={{ 
+          headerShown: false,
+          viewport: {
+            maximumScale: 1,
+            minimumScale: 1,
+            userScalable: false,
+          }
+        }} 
+      />
       <StatusBar hidden={true} />
       <View style={{ flex: 1 }}>
         {expandingColor && (
@@ -342,7 +375,7 @@ export default function App() {
                   }),
                 },
               ],
-              opacity: 1,
+              opacity: selectedOption === 'groupSplitter' ? 1 : 0.6,
             }}
           />
         )}
@@ -437,7 +470,21 @@ export default function App() {
                 backgroundColor: circle.color,
                 opacity: isGrouping ? blinkAnimation : (selectedOption === 'groupSplitter' ? 1 : 0.6),
               }}
-            />
+            >
+              {/* Add border circle */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  left: -10,
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  borderWidth: 2,
+                  borderColor: circle.color,
+                }}
+              />
+            </Animated.View>
           ))}
         </View>
 
