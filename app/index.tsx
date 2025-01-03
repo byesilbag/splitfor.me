@@ -258,14 +258,14 @@ export default function App() {
             setIsGrouping(false);
           }, 5000);
         }
-      }, 2000);
+      }, 5000);
     } else if (selectedOption === 'pickOne' && circles.size > 0) {
       if (groupingTimeout.current) {
         clearTimeout(groupingTimeout.current);
       }
       
       groupingTimeout.current = setTimeout(() => {
-        if (Date.now() - lastTouchTime >= 2000) {
+        if (Date.now() - lastTouchTime >= 5000) {
           const circleIds = Array.from(circles.keys());
           const randomId = circleIds[Math.floor(Math.random() * circleIds.length)];
           const selectedCircle = circles.get(randomId)!;
