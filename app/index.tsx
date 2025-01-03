@@ -251,6 +251,12 @@ export default function App() {
         if (Date.now() - lastTouchTime >= 2000) {
           console.log('Starting grouping animation');
           startGroupingAnimation();
+          
+          // Clear screen after 5 seconds
+          setTimeout(() => {
+            setCircles(new Map());
+            setIsGrouping(false);
+          }, 5000);
         }
       }, 2000);
     } else if (selectedOption === 'pickOne' && circles.size > 0) {
@@ -274,19 +280,23 @@ export default function App() {
           // Start expansion animation
           expandAnimation.setValue(0);
           Animated.sequence([
-            // First scale down the circle slightly
             Animated.timing(selectedCircle.scaleAnim, {
               toValue: 0.9,
               duration: 200,
               useNativeDriver: true,
             }),
-            // Then start the expansion
             Animated.timing(expandAnimation, {
               toValue: 1,
               duration: 800,
               useNativeDriver: false,
             })
           ]).start();
+
+          // Clear screen after 5 seconds
+          setTimeout(() => {
+            setCircles(new Map());
+            setExpandingColor(null);
+          }, 5000);
         }
       }, 2000);
     }
