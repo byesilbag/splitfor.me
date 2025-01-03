@@ -184,12 +184,10 @@ export default function App() {
   const startGroupingAnimation = () => {
     setIsGrouping(true);
     
-    // Stop any existing animation
     if (blinkAnimationRef.current) {
       blinkAnimationRef.current.stop();
     }
 
-    // Create and store the animation reference
     blinkAnimationRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(blinkAnimation, {
@@ -205,24 +203,28 @@ export default function App() {
       ])
     );
 
-    // Start the animation
     blinkAnimationRef.current.start();
 
-    // Assign groups
+    // Shuffle the circles randomly
     const circleIds = Array.from(circles.keys());
+    for (let i = circleIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [circleIds[i], circleIds[j]] = [circleIds[j], circleIds[i]];
+    }
+
+    // Shuffle colors and take the first groupCount colors
+    const shuffledColors = [...PREDEFINED_COLORS]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, groupCount);
+
     const newCircles = new Map(circles);
     
-    // Generate different colors for each group
-    const groupColors = Array.from({ length: groupCount }, (_, i) => 
-      `hsl(${(360 / groupCount) * i}, 70%, 50%)`
-    );
-
-    // Assign colors to circles based on groups
+    // Assign shuffled circles to groups with their respective colors
     circleIds.forEach((id, index) => {
       const groupIndex = index % groupCount;
       const circle = newCircles.get(id);
       if (circle) {
-        circle.color = groupColors[groupIndex];
+        circle.color = shuffledColors[groupIndex];
       }
     });
 
@@ -358,7 +360,16 @@ export default function App() {
         }} 
       />
       <StatusBar hidden={true} />
-      <View style={{ flex: 1 }}>
+      <View style={{ 
+        flex: 1, 
+        overflow: 'hidden',
+        position: 'fixed',
+        width: '100%',
+        height: '100%',
+        top: 0,
+        left: 0,
+        touchAction: 'none', // Prevent zoom gestures
+      }}>
         {expandingColor && (
           <Animated.View
             style={{
@@ -439,7 +450,12 @@ export default function App() {
                   borderRadius: 8,
                 }}
                 onPress={() => {
-                  setSelectedOption(option.id);
+                  if (selectedOption !== option.id) {
+                    setSelectedOption(option.id);
+                    setCircles(new Map()); // Clear circles when changing options
+                    setExpandingColor(null); // Clear expanding animation
+                    stopGroupingAnimation(); // Stop any ongoing animations
+                  }
                   if (!option.subMenu) {
                     toggleMenu();
                   }

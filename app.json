@@ -29,7 +29,9 @@
       "viewport": {
         "maximumScale": 1,
         "minimumScale": 1,
-        "userScalable": false
+        "initialScale": 1,
+        "userScalable": false,
+        "width": "device-width"
       }
     },
     "plugins": [
