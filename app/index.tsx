@@ -1,5 +1,5 @@
 // Write a code that will create colorful circle when left mouse button is clicked. After mouse button is released, the circle should be removed. Colorful circle center must be the mouse position.
-import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions } from "react-native";
+import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions, ScrollView } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 
@@ -29,6 +29,16 @@ const CIRCLE_EXPAND_SIZE = Math.max(
   Dimensions.get('window').height
 ) * 2;
 
+const TITLE_COLORS = [
+  '#FF3B30', // Red - S
+  '#007AFF', // Blue - P
+  '#4CD964', // Green - L
+  '#FF9500', // Orange - I
+  '#5856D6', // Purple - T
+  '#FFD60A', // Yellow - I
+  '#FF2D55', // Pink - O
+];
+
 export default function App() {
   const [circles, setCircles] = useState<Map<number, {
     x: number,
@@ -52,6 +62,7 @@ export default function App() {
   const [pickedCircleId, setPickedCircleId] = useState<number | null>(null);
   const [expandingColor, setExpandingColor] = useState<string | null>(null);
   const expandAnimation = useRef(new Animated.Value(0)).current;
+  const [isGroupSplitterOpen, setIsGroupSplitterOpen] = useState(false);
 
   const generateRandomColor = (existingColors: string[]) => {
     // Filter out colors that are already in use
@@ -343,7 +354,6 @@ export default function App() {
       title: 'Group Splitter',
       subMenu: (
         <View style={{ marginTop: 10, marginLeft: 20 }}>
-        
           {[2, 3, 4].map((num) => (
             <TouchableOpacity
               key={num}
@@ -361,8 +371,15 @@ export default function App() {
         </View>
       ),
     },
-    { id: 'pickOne', title: 'Pick One' }
+    { 
+      id: 'pickOne', 
+      title: 'Pick One',
+    }
   ];
+
+  const handleAboutPress = () => {
+    window.open('https://github.com/byesilbag', '_blank');
+  };
 
   return (
     <>
@@ -387,6 +404,34 @@ export default function App() {
         left: 0,
         touchAction: 'none', // Prevent zoom gestures
       }}>
+        {/* Add Title */}
+        <View style={{
+          position: 'absolute',
+          top: 20,
+          left: 0,
+          right: 0,
+          zIndex: 98,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          {'SPLITTIO'.split('').map((letter, index) => (
+            <Text
+              key={index}
+              style={{
+                fontSize: 32,
+                fontWeight: 'bold',
+                color: TITLE_COLORS[index],
+                textShadowColor: 'rgba(0, 0, 0, 0.2)',
+                textShadowOffset: { width: 1, height: 1 },
+                textShadowRadius: 2,
+              }}
+            >
+              {letter}
+            </Text>
+          ))}
+        </View>
+
         {expandingColor && (
           <Animated.View
             style={{
@@ -445,51 +490,108 @@ export default function App() {
             backgroundColor: 'rgba(255,255,255,0.95)',
             zIndex: 99,
             transform: [{ translateX: menuAnimation }],
-            padding: 20,
-            paddingTop: 70,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 2,
-              height: 0
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
           }}
         >
-          {menuOptions.map((option) => (
-            <View key={option.id}>
-              <TouchableOpacity
-                style={{
-                  padding: 15,
-                  marginBottom: option.subMenu ? 0 : 10,
-                  backgroundColor: selectedOption === option.id ? '#007AFF' : 'transparent',
-                  borderRadius: 8,
-                }}
-                onPress={() => {
-                  if (selectedOption !== option.id) {
-                    setSelectedOption(option.id);
-                    setCircles(new Map()); // Clear circles when changing options
-                    setExpandingColor(null); // Clear expanding animation
-                    stopGroupingAnimation(); // Stop any ongoing animations
-                  }
-                  if (!option.subMenu) {
-                    toggleMenu();
-                  }
-                }}
-              >
-                <Text
+          <ScrollView
+            style={{
+              flex: 1,
+              paddingHorizontal: 20,
+              paddingTop: 70,
+            }}
+            showsVerticalScrollIndicator={true}
+          >
+            {menuOptions.map((option) => (
+              <View key={option.id}>
+                <TouchableOpacity
                   style={{
-                    fontSize: 16,
-                    color: selectedOption === option.id ? 'white' : '#333',
+                    padding: 15,
+                    marginBottom: option.subMenu ? 0 : 10,
+                    backgroundColor: selectedOption === option.id ? '#007AFF' : 'transparent',
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    if (option.id === 'groupSplitter') {
+                      setIsGroupSplitterOpen(!isGroupSplitterOpen);
+                      // Also set the selected option
+                      if (selectedOption !== option.id) {
+                        setSelectedOption(option.id);
+                        setCircles(new Map());
+                        setExpandingColor(null);
+                        stopGroupingAnimation();
+                      }
+                    } else {
+                      if (selectedOption !== option.id) {
+                        setSelectedOption(option.id);
+                        setCircles(new Map());
+                        setExpandingColor(null);
+                        stopGroupingAnimation();
+                      }
+                      toggleMenu();
+                    }
                   }}
                 >
-                  {option.title}
-                </Text>
-              </TouchableOpacity>
-              {selectedOption === option.id && option.subMenu}
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: selectedOption === option.id ? 'white' : '#333',
+                    }}
+                  >
+                    {option.title}
+                  </Text>
+                  {option.id === 'groupSplitter' && (
+                    <Text style={{ 
+                      fontSize: 16,
+                      color: selectedOption === option.id ? 'white' : '#333',
+                    }}>
+                      {isGroupSplitterOpen ? '▼' : '▶'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                {option.id === 'groupSplitter' && isGroupSplitterOpen && option.subMenu}
+              </View>
+            ))}
+            
+            {/* Add explanation section */}
+            <View style={{ 
+              marginTop: 20,
+              backgroundColor: '#f8f9fa',
+              padding: 15,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: '#e9ecef',
+            }}>
+              <Text style={{ fontSize: 14, lineHeight: 20, color: '#333' }}>
+                Splittio is an interactive tool for group organization and random selection.{'\n\n'}
+                🎯 Group Splitter: Touch and hold multiple points to create circles, then watch as they automatically split into color-coded groups.{'\n\n'}
+                🎲 Pick One: Place multiple circles and let the app randomly select one for you!{'\n\n'}
+                Perfect for team division, decision making, or just having fun!
+              </Text>
             </View>
-          ))}
+
+            {/* Add About section */}
+            <TouchableOpacity
+              style={{
+                marginTop: 20,
+                marginBottom: 20,
+                padding: 15,
+                backgroundColor: '#007AFF',
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+              onPress={handleAboutPress}
+            >
+              <Text style={{ 
+                color: 'white', 
+                fontSize: 16, 
+                fontWeight: '500' 
+              }}>
+                About
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </Animated.View>
 
         {/* Main Touch Area with opacity animation */}
