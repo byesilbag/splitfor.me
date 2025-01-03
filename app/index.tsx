@@ -16,10 +16,10 @@ const PREDEFINED_COLORS = [
   '#34C759', // Lime
 ];
 
-const CIRCLE_EXPAND_SIZE = Math.min(window.innerWidth, window.innerHeight) * 0.8; // Increased from previous value
-
-// Alternative if you want it even bigger:
-// const CIRCLE_EXPAND_SIZE = Math.max(window.innerWidth, window.innerHeight);
+const CIRCLE_EXPAND_SIZE = Math.max(
+  Dimensions.get('window').width,
+  Dimensions.get('window').height
+) * 2;
 
 export default function App() {
   const [circles, setCircles] = useState<Map<number, {
@@ -363,31 +363,31 @@ export default function App() {
           <Animated.View
             style={{
               position: 'absolute',
-              width: Dimensions.get('window').width * 3,
-              height: Dimensions.get('window').width * 3,
+              width: CIRCLE_EXPAND_SIZE,
+              height: CIRCLE_EXPAND_SIZE,
               backgroundColor: expandingColor,
-              borderRadius: Dimensions.get('window').width * 1.5,
+              borderRadius: CIRCLE_EXPAND_SIZE / 2,
               transform: [
                 { 
-                  translateX: Animated.subtract(
+                  translateX: Animated.add(
                     circles.get(pickedCircleId!)?.positionX || 0,
-                    Animated.multiply(expandAnimation, Dimensions.get('window').width * 1.5)
+                    Animated.multiply(expandAnimation, -CIRCLE_EXPAND_SIZE / 2)
                   )
                 },
                 { 
-                  translateY: Animated.subtract(
+                  translateY: Animated.add(
                     circles.get(pickedCircleId!)?.positionY || 0,
-                    Animated.multiply(expandAnimation, Dimensions.get('window').width * 1.5)
+                    Animated.multiply(expandAnimation, -CIRCLE_EXPAND_SIZE / 2)
                   )
                 },
                 {
                   scale: expandAnimation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0.1, 1],
+                    outputRange: [0.1, 1.5],
                   }),
                 },
               ],
-              opacity: selectedOption === 'groupSplitter' ? 1 : 0.6,
+              opacity: 1,
             }}
           />
         )}
