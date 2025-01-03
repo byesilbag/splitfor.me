@@ -16,6 +16,11 @@ const PREDEFINED_COLORS = [
   '#34C759', // Lime
 ];
 
+const CIRCLE_EXPAND_SIZE = Math.min(window.innerWidth, window.innerHeight) * 0.8; // Increased from previous value
+
+// Alternative if you want it even bigger:
+// const CIRCLE_EXPAND_SIZE = Math.max(window.innerWidth, window.innerHeight);
+
 export default function App() {
   const [circles, setCircles] = useState<Map<number, {
     x: number,
@@ -56,6 +61,13 @@ export default function App() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Clear old circles if groupSplitter is active
+    if (selectedOption === 'groupSplitter' && isGrouping) {
+      stopGroupingAnimation();
+      setCircles(new Map()); // Clear all circles
+      return; // Exit early to prevent new circle creation
+    }
+
     // Clear old circles and expanding color if present
     if (expandingColor || isGrouping) {
       if (removeTimeout.current) {
