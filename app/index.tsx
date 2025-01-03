@@ -16,6 +16,14 @@ const PREDEFINED_COLORS = [
   '#34C759', // Lime
 ];
 
+// Add new GROUP_COLORS constant
+const GROUP_COLORS = {
+  1: '#FF0000', // Red
+  2: '#00FF00', // Green
+  3: '#0000FF', // Blue
+  4: '#FFFF00', // Yellow
+};
+
 const CIRCLE_EXPAND_SIZE = Math.max(
   Dimensions.get('window').width,
   Dimensions.get('window').height
@@ -212,19 +220,14 @@ export default function App() {
       [circleIds[i], circleIds[j]] = [circleIds[j], circleIds[i]];
     }
 
-    // Shuffle colors and take the first groupCount colors
-    const shuffledColors = [...PREDEFINED_COLORS]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, groupCount);
-
     const newCircles = new Map(circles);
     
-    // Assign shuffled circles to groups with their respective colors
+    // Assign circles to groups using GROUP_COLORS
     circleIds.forEach((id, index) => {
-      const groupIndex = index % groupCount;
+      const groupIndex = (index % groupCount) + 1;
       const circle = newCircles.get(id);
       if (circle) {
-        circle.color = shuffledColors[groupIndex];
+        circle.color = GROUP_COLORS[groupIndex as keyof typeof GROUP_COLORS];
       }
     });
 
