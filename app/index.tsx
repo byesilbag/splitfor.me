@@ -63,6 +63,7 @@ export default function App() {
   const [expandingColor, setExpandingColor] = useState<string | null>(null);
   const expandAnimation = useRef(new Animated.Value(0)).current;
   const [isGroupSplitterOpen, setIsGroupSplitterOpen] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
 
   const generateRandomColor = (existingColors: string[]) => {
     // Filter out colors that are already in use
@@ -381,6 +382,66 @@ export default function App() {
     window.open('https://github.com/byesilbag', '_blank');
   };
 
+  const handleBuyMeACoffee = () => {
+    window.open('https://www.buymeacoffee.com/bartuyesilbag', '_blank');
+  };
+
+  const WelcomePopup = () => (
+    <View style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      padding: 20,
+    }}>
+      <View style={{
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 15,
+        maxWidth: 400,
+        width: '90%',
+      }}>
+        <Text style={{
+          fontSize: 24,
+          fontWeight: 'bold',
+          marginBottom: 15,
+          color: '#007AFF',
+        }}>
+          Welcome to Splittio!
+        </Text>
+        <Text style={{
+          fontSize: 16,
+          lineHeight: 24,
+          marginBottom: 15,
+          color: '#333',
+        }}>
+          Splittio is an interactive tool for group organization and random selection.{'\n\n'}
+          🎯 Group Splitter: Touch and hold multiple points to create circles, then watch as they automatically split into color-coded groups.{'\n\n'}
+          🎲 Pick One: Place multiple circles and let the app randomly select one for you!{'\n\n'}
+          Perfect for team division, decision making, or just having fun!
+        </Text>
+        <TouchableOpacity
+          onPress={() => setShowWelcomePopup(false)}
+          style={{
+            backgroundColor: '#007AFF',
+            padding: 15,
+            borderRadius: 8,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 16, fontWeight: '500' }}>
+            Get Started
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <>
       <Stack.Screen 
@@ -404,6 +465,9 @@ export default function App() {
         left: 0,
         touchAction: 'none', // Prevent zoom gestures
       }}>
+        {/* Add Welcome Popup */}
+        {showWelcomePopup && <WelcomePopup />}
+
         {/* Add Title */}
         <View style={{
           position: 'absolute',
@@ -590,6 +654,23 @@ export default function App() {
               }}>
                 About
               </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                marginBottom: 20,
+                alignItems: 'center',
+              }}
+              onPress={handleBuyMeACoffee}
+            >
+              <img 
+                src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" 
+                alt="Buy Me A Coffee" 
+                style={{ 
+                  height: '60px',
+                  width: '217px'
+                }} 
+              />
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
