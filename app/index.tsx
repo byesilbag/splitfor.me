@@ -268,21 +268,25 @@ export default function App() {
           
           // Keep only the picked circle
           const newCircles = new Map();
-          newCircles.set(randomId, {
-            ...selectedCircle,
-            scaleAnim: new Animated.Value(0.75) // Ensure picked circle is also at 75%
-          });
+          newCircles.set(randomId, selectedCircle);
           setCircles(newCircles);
 
-          // Start expansion animation from the circle's position
+          // Start expansion animation
           expandAnimation.setValue(0);
-          Animated.timing(expandAnimation, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: false,
-          }).start(() => {
-            setExpandingColor(selectedCircle.color);
-          });
+          Animated.sequence([
+            // First scale down the circle slightly
+            Animated.timing(selectedCircle.scaleAnim, {
+              toValue: 0.9,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            // Then start the expansion
+            Animated.timing(expandAnimation, {
+              toValue: 1,
+              duration: 800,
+              useNativeDriver: false,
+            })
+          ]).start();
         }
       }, 2000);
     }
@@ -292,7 +296,7 @@ export default function App() {
         clearTimeout(groupingTimeout.current);
       }
     };
-  }, [lastTouchTime, selectedOption, circles.size, groupCount]);
+  }, [lastTouchTime, selectedOption, circles.size]);
 
   // Stop animations when changing options
   useEffect(() => {
@@ -381,20 +385,20 @@ export default function App() {
               transform: [
                 { 
                   translateX: Animated.add(
-                    circles.get(pickedCircleId!)?.positionX || 0,
-                    Animated.multiply(expandAnimation, -CIRCLE_EXPAND_SIZE / 2)
+                    circles.get(pickedCircleId!)?.x || 0,
+                    -CIRCLE_EXPAND_SIZE / 2
                   )
                 },
                 { 
                   translateY: Animated.add(
-                    circles.get(pickedCircleId!)?.positionY || 0,
-                    Animated.multiply(expandAnimation, -CIRCLE_EXPAND_SIZE / 2)
+                    circles.get(pickedCircleId!)?.y || 0,
+                    -CIRCLE_EXPAND_SIZE / 2
                   )
                 },
                 {
                   scale: expandAnimation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0.1, 1.5],
+                    outputRange: [0, 2.5], // Increased scale for full coverage
                   }),
                 },
               ],
