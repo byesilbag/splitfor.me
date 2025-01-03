@@ -1,5 +1,5 @@
 // Write a code that will create colorful circle when left mouse button is clicked. After mouse button is released, the circle should be removed. Colorful circle center must be the mouse position.
-import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions, ScrollView } from "react-native";
+import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions, ScrollView, Platform, GestureResponderEvent } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 
@@ -79,7 +79,14 @@ export default function App() {
     return availableColors[Math.floor(Math.random() * availableColors.length)];
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: GestureResponderEvent) => {
+    const { locationX, locationY } = e.nativeEvent;
+    
+    if (Platform.OS === 'android') {
+      // Prevent default touch behavior on Android
+      e.preventDefault?.();
+    }
+
     // Clear old circles if groupSplitter is active
     if (selectedOption === 'groupSplitter' && isGrouping) {
       stopGroupingAnimation();
@@ -101,48 +108,47 @@ export default function App() {
     if (isGrouping) {
       stopGroupingAnimation();
     }
-    const rect = e.currentTarget.getBoundingClientRect();
+
     const newCircles = new Map(circles); // Keep existing circles by copying the map
     
-    Array.from(e.touches).forEach(touch => {
-      if (!newCircles.has(touch.identifier)) { // Only create new circle if it doesn't exist
-        const newX = touch.clientX - rect.left;
-        const newY = touch.clientY - rect.top;
-        
-        // Get existing colors
-        const existingColors = Array.from(newCircles.values()).map(circle => circle.color);
-        
-        newCircles.set(touch.identifier, {
-          x: newX,
-          y: newY,
-          color: generateRandomColor(existingColors),
-          scaleAnim: new Animated.Value(0.75),
-          positionX: new Animated.Value(newX),
-          positionY: new Animated.Value(newY),
-        });
+    // Handle single touch point
+    const touch = e.nativeEvent.touches?.[0] || e.nativeEvent;
+    const newX = locationX;
+    const newY = locationY;
+    
+    if (!newCircles.has(touch.identifier)) {
+      const existingColors = Array.from(newCircles.values()).map(circle => circle.color);
+      
+      newCircles.set(touch.identifier, {
+        x: newX,
+        y: newY,
+        color: generateRandomColor(existingColors),
+        scaleAnim: new Animated.Value(0.75),
+        positionX: new Animated.Value(newX),
+        positionY: new Animated.Value(newY),
+      });
 
-        // Start animation for new circle
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
-              toValue: 0.9,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-            Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
-              toValue: 0.75,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-      }
-    });
+      // Start animation for new circle
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
+            toValue: 0.9,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
+            toValue: 0.75,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
 
     setCircles(newCircles);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = (e: GestureResponderEvent) => {
     if (selectedOption === 'groupSplitter' && isGrouping) {
       // Stop animations and make circles opaque
       const newCircles = new Map(circles);
@@ -151,43 +157,37 @@ export default function App() {
         circle.scaleAnim.setValue(1);
       });
       
-      // Don't set a timeout - let handleTouchStart handle the cleanup
       setCircles(newCircles);
       return;
     }
 
     // Original touch end logic for other cases
     const newCircles = new Map(circles);
-    Array.from(e.changedTouches).forEach(touch => {
-      newCircles.delete(touch.identifier);
-    });
+    const touch = e.nativeEvent.touches?.[0] || e.nativeEvent;
+    newCircles.delete(touch.identifier);
     setCircles(newCircles);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const handleTouchMove = (e: GestureResponderEvent) => {
+    const { locationX, locationY } = e.nativeEvent;
+    const touch = e.nativeEvent.touches?.[0] || e.nativeEvent;
     
-    Array.from(e.touches).forEach(touch => {
-      const circle = circles.get(touch.identifier);
-      if (circle) {
-        const newX = touch.clientX - rect.left;
-        const newY = touch.clientY - rect.top;
-        
-        Animated.spring(circle.positionX, {
-          toValue: newX,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 10,
-        }).start();
-        
-        Animated.spring(circle.positionY, {
-          toValue: newY,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 10,
-        }).start();
-      }
-    });
+    const circle = circles.get(touch.identifier);
+    if (circle) {
+      Animated.spring(circle.positionX, {
+        toValue: locationX,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 10,
+      }).start();
+      
+      Animated.spring(circle.positionY, {
+        toValue: locationY,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 10,
+      }).start();
+    }
   };
 
   const toggleMenu = () => {
@@ -381,6 +381,13 @@ export default function App() {
     window.open('https://github.com/byesilbag', '_blank');
   };
 
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      StatusBar.setHidden(true);
+      StatusBar.setTranslucent(true);
+    }
+  }, []);
+
   return (
     <>
       <Stack.Screen 
@@ -515,20 +522,16 @@ export default function App() {
                   onPress={() => {
                     if (option.id === 'groupSplitter') {
                       setIsGroupSplitterOpen(!isGroupSplitterOpen);
-                      // Also set the selected option
-                      if (selectedOption !== option.id) {
-                        setSelectedOption(option.id);
-                        setCircles(new Map());
-                        setExpandingColor(null);
-                        stopGroupingAnimation();
-                      }
-                    } else {
-                      if (selectedOption !== option.id) {
-                        setSelectedOption(option.id);
-                        setCircles(new Map());
-                        setExpandingColor(null);
-                        stopGroupingAnimation();
-                      }
+                    }
+                    
+                    // Always update the selected option
+                    setSelectedOption(option.id);
+                    setCircles(new Map());
+                    setExpandingColor(null);
+                    stopGroupingAnimation();
+                    
+                    // Close menu only for 'pickOne'
+                    if (option.id === 'pickOne') {
                       toggleMenu();
                     }
                   }}
@@ -550,7 +553,32 @@ export default function App() {
                     </Text>
                   )}
                 </TouchableOpacity>
-                {option.id === 'groupSplitter' && isGroupSplitterOpen && option.subMenu}
+                {option.id === 'groupSplitter' && isGroupSplitterOpen && (
+                  <View style={{ marginTop: 10, marginLeft: 20 }}>
+                    {[2, 3, 4].map((num) => (
+                      <TouchableOpacity
+                        key={num}
+                        style={{
+                          padding: 10,
+                          backgroundColor: groupCount === num ? '#e0e0e0' : 'transparent',
+                          borderRadius: 5,
+                          marginBottom: 5,
+                        }}
+                        onPress={() => {
+                          setGroupCount(num);
+                          // Ensure we're in groupSplitter mode when selecting group count
+                          setSelectedOption('groupSplitter');
+                          setCircles(new Map());
+                          setExpandingColor(null);
+                          stopGroupingAnimation();
+                          toggleMenu(); // Close menu after selection
+                        }}
+                      >
+                        <Text style={{ color: '#333' }}>{num} Groups</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
             
@@ -600,6 +628,11 @@ export default function App() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onTouchMove={handleTouchMove}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderGrant={handleTouchStart}
+          onResponderMove={handleTouchMove}
+          onResponderRelease={handleTouchEnd}
         >
           {Array.from(circles.entries()).map(([id, circle]) => (
             <Animated.View

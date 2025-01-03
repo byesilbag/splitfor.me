@@ -1,59 +1,18 @@
 {
   "expo": {
-    "name": "fresh-project",
-    "slug": "fresh-project",
+    "name": "Splittio",
+    "slug": "splittio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
+      "package": "com.bartuyesilbag.splittio",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png",
-      "build": {
-        "babel": {
-          "include": ["@expo/vector-icons"]
-        }
       },
-      "viewport": {
-        "maximumScale": 1,
-        "minimumScale": 1,
-        "initialScale": 1,
-        "userScalable": false,
-        "width": "device-width"
-      }
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "androidNavigationBar": {
-      "visible": "immersive"
-    },
-    "androidStatusBar": {
-      "hidden": true
+      "permissions": []
     }
   }
 }
