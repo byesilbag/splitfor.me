@@ -21,6 +21,15 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png",
+      "shortcut": {
+        "favicon": "./assets/images/favicon.png"
+      },
+      "meta": {
+        "favicon": "./assets/images/favicon.png",
+        "apple-touch-icon": "./assets/images/favicon.png",
+        "og:image": "./assets/images/favicon.png",
+        "og:type": "website"
+      },
       "build": {
         "babel": {
           "include": ["@expo/vector-icons"]
