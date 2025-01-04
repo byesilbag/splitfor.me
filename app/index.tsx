@@ -2,6 +2,7 @@
 import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions, ScrollView } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 const PREDEFINED_COLORS = [
   '#FF3B30', // Red
