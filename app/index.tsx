@@ -37,6 +37,7 @@ const TITLE_COLORS = [
   '#5856D6', // Purple - T
   '#FFD60A', // Yellow - I
   '#FF2D55', // Pink - O
+  '#FF3B30', // Red - R
 ];
 
 export default function App() {
@@ -412,7 +413,7 @@ export default function App() {
           marginBottom: 15,
           color: '#007AFF',
         }}>
-          Welcome to Splittio!
+          Welcome to splitfor.me!
         </Text>
         <Text style={{
           fontSize: 16,
@@ -420,7 +421,10 @@ export default function App() {
           marginBottom: 15,
           color: '#333',
         }}>
-          Splittio is an interactive tool for group organization and random selection.{'\n\n'}
+          <Text style={{ fontWeight: 'bold' }}>
+            splitfor.me is an interactive tool for group organization and random selection.
+          </Text>
+          {'\n\n'}
           🎯 Group Splitter: Touch and hold multiple points to create circles, then watch as they automatically split into color-coded groups.{'\n\n'}
           🎲 Pick One: Place multiple circles and let the app randomly select one for you!{'\n\n'}
           Perfect for team division, decision making, or just having fun!
@@ -479,7 +483,7 @@ export default function App() {
           justifyContent: 'center',
           alignItems: 'center',
         }}>
-          {'SPLITTIO'.split('').map((letter, index) => (
+          {'splitfor.me'.split('').map((letter, index) => (
             <Text
               key={index}
               style={{
@@ -628,7 +632,10 @@ export default function App() {
               borderColor: '#e9ecef',
             }}>
               <Text style={{ fontSize: 14, lineHeight: 20, color: '#333' }}>
-                Splittio is an interactive tool for group organization and random selection.{'\n\n'}
+                <Text style={{ fontWeight: 'bold' }}>
+                  splitfor.me is an interactive tool for group organization and random selection.
+                </Text>
+                {'\n\n'}
                 🎯 Group Splitter: Touch and hold multiple points to create circles, then watch as they automatically split into color-coded groups.{'\n\n'}
                 🎲 Pick One: Place multiple circles and let the app randomly select one for you!{'\n\n'}
                 Perfect for team division, decision making, or just having fun!
