@@ -139,23 +139,18 @@ export default function App() {
   };
 
   const handleTouchEnd = (e: TouchEvent) => {
-    if (selectedOption === 'groupSplitter' && isGrouping) {
-      // Stop animations and make circles opaque
-      const newCircles = new Map(circles);
-      Array.from(newCircles.values()).forEach(circle => {
-        circle.scaleAnim.stopAnimation();
-        circle.scaleAnim.setValue(1);
-      });
-      
-      // Don't set a timeout - let handleTouchStart handle the cleanup
-      setCircles(newCircles);
+    // If we're in grouping phase, don't remove any circles
+    if (phase === 'grouping') {
       return;
     }
 
-    // Original touch end logic for other cases
+    // Remove circles that are no longer being touched
     const newCircles = new Map(circles);
     Array.from(e.changedTouches).forEach(touch => {
-      newCircles.delete(touch.identifier);
+      // Only remove the circle if we're in touching phase (not grouped yet)
+      if (phase === 'touching') {
+        newCircles.delete(touch.identifier);
+      }
     });
     setCircles(newCircles);
   };
