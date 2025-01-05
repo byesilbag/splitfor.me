@@ -3,6 +3,7 @@ import { View, Animated, StatusBar, Text, TouchableOpacity, Dimensions, ScrollVi
 import { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 import { SpeedInsights } from "@vercel/speed-insights/react"
+import { TouchEvent } from 'react';
 
 const PREDEFINED_COLORS = [
   '#FF3B30', // Red
@@ -66,6 +67,7 @@ export default function App() {
   const expandAnimation = useRef(new Animated.Value(0)).current;
   const [isGroupSplitterOpen, setIsGroupSplitterOpen] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+  const [phase, setPhase] = useState<'idle' | 'touching' | 'grouping'>('idle');
 
   const generateRandomColor = (existingColors: string[]) => {
     // Filter out colors that are already in use
@@ -82,37 +84,28 @@ export default function App() {
     return availableColors[Math.floor(Math.random() * availableColors.length)];
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Clear old circles if groupSplitter is active
-    if (selectedOption === 'groupSplitter' && isGrouping) {
+  const handleTouchStart = (e: TouchEvent) => {
+    // If we're in grouping phase (for either mode), clear everything and go back to idle
+    if (phase === 'grouping') {
       stopGroupingAnimation();
-      setCircles(new Map()); // Clear all circles
-      return; // Exit early to prevent new circle creation
+      setCircles(new Map());
+      setExpandingColor(null); // Clear expanding circle for Pick One mode
+      setPhase('idle');
+      return;
     }
 
-    // Clear old circles and expanding color if present
-    if (expandingColor || isGrouping) {
-      if (removeTimeout.current) {
-        clearTimeout(removeTimeout.current);
-      }
-      setExpandingColor(null);
-      setCircles(new Map()); // Clear old circles
-      stopGroupingAnimation(); // Stop any ongoing grouping animation
-    }
-
+    // We're either in idle or touching phase, so start/continue the touching phase
+    setPhase('touching');
     setLastTouchTime(Date.now());
-    if (isGrouping) {
-      stopGroupingAnimation();
-    }
+    
     const rect = e.currentTarget.getBoundingClientRect();
-    const newCircles = new Map(circles); // Keep existing circles by copying the map
+    const newCircles = new Map(circles); // Keep existing circles
     
     Array.from(e.touches).forEach(touch => {
-      if (!newCircles.has(touch.identifier)) { // Only create new circle if it doesn't exist
+      if (!newCircles.has(touch.identifier)) {
         const newX = touch.clientX - rect.left;
         const newY = touch.clientY - rect.top;
         
-        // Get existing colors
         const existingColors = Array.from(newCircles.values()).map(circle => circle.color);
         
         newCircles.set(touch.identifier, {
@@ -145,7 +138,7 @@ export default function App() {
     setCircles(newCircles);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = (e: TouchEvent) => {
     if (selectedOption === 'groupSplitter' && isGrouping) {
       // Stop animations and make circles opaque
       const newCircles = new Map(circles);
@@ -167,7 +160,7 @@ export default function App() {
     setCircles(newCircles);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: TouchEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     
     Array.from(e.touches).forEach(touch => {
@@ -227,7 +220,7 @@ export default function App() {
 
     blinkAnimationRef.current.start();
 
-    // Shuffle the circles randomly
+    // Shuffle and assign groups
     const circleIds = Array.from(circles.keys());
     for (let i = circleIds.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -236,7 +229,6 @@ export default function App() {
 
     const newCircles = new Map(circles);
     
-    // Assign circles to groups using GROUP_COLORS
     circleIds.forEach((id, index) => {
       const groupIndex = (index % groupCount) + 1;
       const circle = newCircles.get(id);
@@ -259,61 +251,22 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (selectedOption === 'groupSplitter' && circles.size > 0) {
+    if (circles.size > 0 && phase === 'touching') {
       if (groupingTimeout.current) {
         clearTimeout(groupingTimeout.current);
       }
       
       groupingTimeout.current = setTimeout(() => {
         if (Date.now() - lastTouchTime >= 2000) {
-          console.log('Starting grouping animation');
-          startGroupingAnimation();
-          
-          // Clear screen after 5 seconds
-          setTimeout(() => {
-            setCircles(new Map());
-            setIsGrouping(false);
-          }, 5000);
-        }
-      }, 2000);
-    } else if (selectedOption === 'pickOne' && circles.size > 0) {
-      if (groupingTimeout.current) {
-        clearTimeout(groupingTimeout.current);
-      }
-      
-      groupingTimeout.current = setTimeout(() => {
-        if (Date.now() - lastTouchTime >= 2000) {
-          const circleIds = Array.from(circles.keys());
-          const randomId = circleIds[Math.floor(Math.random() * circleIds.length)];
-          const selectedCircle = circles.get(randomId)!;
-          setPickedCircleId(randomId);
-          setExpandingColor(selectedCircle.color);
-          
-          // Keep only the picked circle
-          const newCircles = new Map();
-          newCircles.set(randomId, selectedCircle);
-          setCircles(newCircles);
-
-          // Start expansion animation
-          expandAnimation.setValue(0);
-          Animated.sequence([
-            Animated.timing(selectedCircle.scaleAnim, {
-              toValue: 0.9,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-            Animated.timing(expandAnimation, {
-              toValue: 1,
-              duration: 800,
-              useNativeDriver: false,
-            })
-          ]).start();
-
-          // Clear screen after 5 seconds
-          setTimeout(() => {
-            setCircles(new Map());
-            setExpandingColor(null);
-          }, 5000);
+          if (selectedOption === 'groupSplitter') {
+            console.log('Starting grouping animation');
+            startGroupingAnimation();
+            setPhase('grouping');
+          } else if (selectedOption === 'pickOne') {
+            console.log('Picking one circle');
+            pickOneCircle();
+            setPhase('grouping'); // We'll use 'grouping' phase for both modes
+          }
         }
       }, 2000);
     }
@@ -323,7 +276,7 @@ export default function App() {
         clearTimeout(groupingTimeout.current);
       }
     };
-  }, [lastTouchTime, selectedOption, circles.size]);
+  }, [lastTouchTime, selectedOption, circles.size, phase]);
 
   // Stop animations when changing options
   useEffect(() => {
@@ -446,6 +399,34 @@ export default function App() {
       </View>
     </View>
   );
+
+  const pickOneCircle = () => {
+    const circleIds = Array.from(circles.keys());
+    const randomId = circleIds[Math.floor(Math.random() * circleIds.length)];
+    const selectedCircle = circles.get(randomId)!;
+    setPickedCircleId(randomId);
+    setExpandingColor(selectedCircle.color);
+    
+    // Keep only the picked circle
+    const newCircles = new Map();
+    newCircles.set(randomId, selectedCircle);
+    setCircles(newCircles);
+
+    // Start expansion animation
+    expandAnimation.setValue(0);
+    Animated.sequence([
+      Animated.timing(selectedCircle.scaleAnim, {
+        toValue: 0.9,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(expandAnimation, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: false,
+      })
+    ]).start();
+  };
 
   return (
     <>
@@ -686,9 +667,9 @@ export default function App() {
         {/* Main Touch Area with opacity animation */}
         <View 
           style={{ flex: 1 }}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onTouchMove={handleTouchMove}
+          onTouchStart={(e: TouchEvent) => handleTouchStart(e)}
+          onTouchEnd={(e: TouchEvent) => handleTouchEnd(e)}
+          onTouchMove={(e: TouchEvent) => handleTouchMove(e)}
         >
           {Array.from(circles.entries()).map(([id, circle]) => (
             <Animated.View
