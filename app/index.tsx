@@ -75,9 +75,9 @@ export default function App() {
       color => !existingColors.includes(color)
     );
     
-    // If all colors are used, return the first predefined color (shouldn't happen with 10 colors)
+    // If all colors are used, don't create a new circle
     if (availableColors.length === 0) {
-      return PREDEFINED_COLORS[0];
+      return null;
     }
     
     // Return a random color from available colors
@@ -89,7 +89,7 @@ export default function App() {
     if (phase === 'grouping') {
       stopGroupingAnimation();
       setCircles(new Map());
-      setExpandingColor(null); // Clear expanding circle for Pick One mode
+      setExpandingColor(null);
       setPhase('idle');
       return;
     }
@@ -99,7 +99,7 @@ export default function App() {
     setLastTouchTime(Date.now());
     
     const rect = e.currentTarget.getBoundingClientRect();
-    const newCircles = new Map(circles); // Keep existing circles
+    const newCircles = new Map(circles);
     
     Array.from(e.touches).forEach(touch => {
       if (!newCircles.has(touch.identifier)) {
@@ -107,31 +107,35 @@ export default function App() {
         const newY = touch.clientY - rect.top;
         
         const existingColors = Array.from(newCircles.values()).map(circle => circle.color);
+        const newColor = generateRandomColor(existingColors);
         
-        newCircles.set(touch.identifier, {
-          x: newX,
-          y: newY,
-          color: generateRandomColor(existingColors),
-          scaleAnim: new Animated.Value(0.75),
-          positionX: new Animated.Value(newX),
-          positionY: new Animated.Value(newY),
-        });
+        // Only create new circle if we have an available color
+        if (newColor) {
+          newCircles.set(touch.identifier, {
+            x: newX,
+            y: newY,
+            color: newColor,
+            scaleAnim: new Animated.Value(0.75),
+            positionX: new Animated.Value(newX),
+            positionY: new Animated.Value(newY),
+          });
 
-        // Start animation for new circle
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
-              toValue: 0.9,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-            Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
-              toValue: 0.75,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
+          // Start animation for new circle
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
+                toValue: 0.9,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.timing(newCircles.get(touch.identifier)!.scaleAnim, {
+                toValue: 0.75,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+            ])
+          ).start();
+        }
       }
     });
 
@@ -400,27 +404,19 @@ export default function App() {
     const randomId = circleIds[Math.floor(Math.random() * circleIds.length)];
     const selectedCircle = circles.get(randomId)!;
     setPickedCircleId(randomId);
-    setExpandingColor(selectedCircle.color);
     
     // Keep only the picked circle
     const newCircles = new Map();
     newCircles.set(randomId, selectedCircle);
     setCircles(newCircles);
 
-    // Start expansion animation
-    expandAnimation.setValue(0);
-    Animated.sequence([
-      Animated.timing(selectedCircle.scaleAnim, {
-        toValue: 0.9,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(expandAnimation, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: false,
-      })
-    ]).start();
+    // Start expansion animation on the selected circle itself
+    selectedCircle.scaleAnim.setValue(1);
+    Animated.timing(selectedCircle.scaleAnim, {
+      toValue: 25, // Increase this value to make the circle expand more
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
@@ -476,39 +472,6 @@ export default function App() {
             </Text>
           ))}
         </View>
-
-        {expandingColor && (
-          <Animated.View
-            style={{
-              position: 'absolute',
-              width: CIRCLE_EXPAND_SIZE,
-              height: CIRCLE_EXPAND_SIZE,
-              backgroundColor: expandingColor,
-              borderRadius: CIRCLE_EXPAND_SIZE / 2,
-              transform: [
-                { 
-                  translateX: Animated.add(
-                    circles.get(pickedCircleId!)?.x || 0,
-                    -CIRCLE_EXPAND_SIZE / 2
-                  )
-                },
-                { 
-                  translateY: Animated.add(
-                    circles.get(pickedCircleId!)?.y || 0,
-                    -CIRCLE_EXPAND_SIZE / 2
-                  )
-                },
-                {
-                  scale: expandAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 2.5], // Increased scale for full coverage
-                  }),
-                },
-              ],
-              opacity: 1,
-            }}
-          />
-        )}
 
         {/* Menu Button */}
         <TouchableOpacity
@@ -683,19 +646,21 @@ export default function App() {
                 opacity: isGrouping ? blinkAnimation : (selectedOption === 'groupSplitter' ? 1 : 0.6),
               }}
             >
-              {/* Add border circle */}
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -10,
-                  left: -10,
-                  width: 120,
-                  height: 120,
-                  borderRadius: 60,
-                  borderWidth: 2,
-                  borderColor: circle.color,
-                }}
-              />
+              {/* Remove the border circle when the circle is expanding */}
+              {(!pickedCircleId || id !== pickedCircleId) && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -10,
+                    left: -10,
+                    width: 120,
+                    height: 120,
+                    borderRadius: 60,
+                    borderWidth: 2,
+                    borderColor: circle.color,
+                  }}
+                />
+              )}
             </Animated.View>
           ))}
         </View>
